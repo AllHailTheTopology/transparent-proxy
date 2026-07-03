@@ -5,6 +5,8 @@ NETNS_CLIENT = client
 NETNS_PROXY = proxy
 NETNS_SERVER = server
 
+proxy: proxy.o
+
 topology:
 	# create network namespaces
 	$(NETNS) add $(NETNS_CLIENT)
