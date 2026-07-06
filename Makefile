@@ -41,6 +41,12 @@ topology:
 	$(NETNS_EXEC) $(NETNS_PROXY) sysctl -w net.ipv4.ip_forward=1
 	$(NETNS_EXEC) $(NETNS_PROXY) sysctl -w net.ipv4.conf.all.proxy_arp=1
 
+	# configure policy routing for proxy namespace, marking traffic destined for echo server,
+	# and routing this traffic into the host for local delivery.
+	$(NETNS_EXEC) $(NETNS_PROXY) iptables -t mangle -A PREROUTING -d 10.0.6.1 -j MARK --set-mark 1
+	$(NETNS_EXEC) $(NETNS_PROXY) ip rule add fwmark 1 table 100
+	$(NETNS_EXEC) $(NETNS_PROXY) ip route add table 100 local 0.0.0.0/0 dev lo
+
 topology-destroy:
 	$(NETNS) del $(NETNS_CLIENT)
 	$(NETNS) del $(NETNS_PROXY)
