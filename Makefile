@@ -47,6 +47,11 @@ topology:
 	$(NETNS_EXEC) $(NETNS_PROXY) ip rule add fwmark 1 table 100
 	$(NETNS_EXEC) $(NETNS_PROXY) ip route add table 100 local 0.0.0.0/0 dev lo
 
+	# configure iptables to intercept marked packets toward the echo server and
+	# deliver to the proxy's port.
+	$(NETNS_EXEC) $(NETNS_PROXY) iptables -t mangle -A PREROUTING -p tcp -m mark --mark 1 -j TPROXY --on-port 6666
+	$(NETNS_EXEC) $(NETNS_PROXY) iptables -t mangle -A PREROUTING -p tcp -m socket --transparent -j MARK --set-mark 1
+
 topology-destroy:
 	$(NETNS) del $(NETNS_CLIENT)
 	$(NETNS) del $(NETNS_PROXY)

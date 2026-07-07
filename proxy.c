@@ -11,7 +11,7 @@
 #define PROXY_TARGET_IP 0x0a000601
 #define MAX_MSG_SIZE 1024 * 1024
 
-int proxy_do(int client_sock) {
+int proxy_do(int client_sock, struct sockaddr_in *client) {
     struct sockaddr_in server_addr = {.sin_addr = htonl(PROXY_TARGET_IP),
                                       .sin_port = htons(PROXY_TARGET_PORT),
                                       .sin_family = AF_INET};
@@ -24,6 +24,17 @@ int proxy_do(int client_sock) {
         perror("proxy_do: socket");
         return 0;
     }
+
+    int one = 1;
+    if (setsockopt(server_sock, SOL_IP, IP_TRANSPARENT, &one, sizeof(one)) < 0) {
+        perror("setsockopt");
+		goto cleanup;
+    }
+
+	if(bind(server_sock, (struct sockaddr *)client, sizeof(struct sockaddr_in)) < 0 ) {
+		perror("bind");
+		goto cleanup;
+	}
 
     if (connect(server_sock, (struct sockaddr*)&server_addr,
                 sizeof(server_addr)) < 0) {
@@ -65,6 +76,12 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    int one = 1;
+    if (setsockopt(sock, SOL_IP, IP_TRANSPARENT, &one, sizeof(one)) < 0) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+
     struct sockaddr_in addr = {
         .sin_addr = 0, .sin_port = htons(PROXY_PORT), .sin_family = AF_INET};
     if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
@@ -96,7 +113,7 @@ int main(int argc, char* argv[]) {
         }
 
         printf("new client: %s\n", buf);
-        proxy_do(client_sock);
+        proxy_do(client_sock, &client);
         close(client_sock);
     }
 }
